@@ -4,6 +4,7 @@ const router = express.Router()
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const User = require('../models/User')
+const Note = require('../models/Note')
 
 // 用户注册
 router.post('/register', async (req, res) => {
@@ -60,10 +61,31 @@ router.get('/userinfo', authMiddleware, async (req, res) => {
   }
 })
 
+router.post('/sync-data', authMiddleware, async (req, res) => {
+  const clientData = req.body; // 假设客户端发送JSON数组
+
+  try {
+      // 处理clientData，更新或插入到MongoDB
+      for (const item of clientData) {
+          await Note.findOneAndUpdate({ key: item.key }, item, { upsert: true });
+      }
+
+      // 从MongoDB中检索更新后的数据
+      const updatedData = await Note.find({});
+      // 只在返回给客户端时组装成数组
+      const assembledData = updatedData.map(item => item.toObject());
+
+      res.json(assembledData);
+  } catch (error) {
+      console.error('同步数据错误:', error);
+      res.status(500).json({ message: '服务器内部错误' });
+  }
+});
+
 function authMiddleware(req, res, next) {
   // 从请求头中获取token
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const authHeader = req.headers['authorization']
+  const token = authHeader && authHeader.split(' ')[1]
 
   // 检查token是否存在
   if (!token) {
