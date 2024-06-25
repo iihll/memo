@@ -62,7 +62,7 @@ router.get('/userinfo', authMiddleware, async (req, res) => {
 })
 
 router.post('/sync-data', authMiddleware, async (req, res) => {
-  const clientData = req.body; // 假设客户端发送JSON数组
+  const clientData = Array.isArray(req.body) ? req.body : []; // 假设客户端发送JSON数组
 
   try {
       // 处理clientData，更新或插入到MongoDB
