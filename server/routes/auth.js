@@ -65,20 +65,24 @@ router.post('/sync-data', authMiddleware, async (req, res) => {
   const clientData = Array.isArray(req.body) ? req.body : []; // 假设客户端发送JSON数组
 
   try {
-      // 处理clientData，更新或插入到MongoDB
-      for (const item of clientData) {
-          await Note.findOneAndUpdate({ key: item.key }, item, { upsert: true });
-      }
+    // 处理clientData，更新或插入到MongoDB
+    for (const item of clientData) {
+      // 将req.user.id与item关联，并且确保不覆盖item中的id字段
+      const query = { key: item.key, userId: req.user.id };
+      const update = { ...item, userId: req.user.id };
+      await Note.findOneAndUpdate(query, update, { upsert: true });
+    }
 
-      // 从MongoDB中检索更新后的数据
-      const updatedData = await Note.find({});
-      // 只在返回给客户端时组装成数组
-      const assembledData = updatedData.map(item => item.toObject());
+    // 从MongoDB中检索更新后的数据
+    const updatedData = await Note.find({ userId: req.user.id });
 
-      res.json(assembledData);
+    // 只在返回给客户端时组装成数组
+    const assembledData = updatedData.map(item => item.toObject());
+
+    res.json(assembledData);
   } catch (error) {
-      console.error('同步数据错误:', error);
-      res.status(500).json({ message: '服务器内部错误' });
+    console.error('同步数据错误:', error);
+    res.status(500).json({ message: '服务器内部错误' });
   }
 });
 
